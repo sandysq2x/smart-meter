@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Meter - Sign In</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f766e, #1e3a8a);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 { margin-bottom: 20px; }
+    form {
+      background: rgba(0,0,0,0.4);
+      padding: 20px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 350px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      margin-bottom: 15px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn-email {
+      background: #22c55e;
+      color: white;
+    }
+    .btn-email:hover { background: #16a34a; }
+    .btn-google {
+      background: white;
+      color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-google img {
+      width: 22px;
+      margin-right: 10px;
+    }
+    .btn-google:hover { background: #f1f1f1; }
+    .error {
+      color: #f87171;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Smart Meter Login</h1>
+
+  <!-- Email/Password Login -->
+  <form id="loginForm">
+    <input type="email" id="email" placeholder="Enter Email" required>
+    <input type="password" id="password" placeholder="Enter Password" required>
+    <button type="submit" class="btn-email">Sign In</button>
+    <p class="error" id="errorMsg"></p>
+  </form>
+
+  <!-- Google Login Button -->
+  <button id="googleBtn" class="btn-google">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+    Sign in with Google
+  </button>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
+
+    // 🔹 Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBKymhtFhKq9PDQnBetwcqgwpHSG8CZ26E",
+      authDomain: "prasactronics-b28eb.firebaseapp.com",
+      databaseURL: "https://prasactronics-b28eb-default-rtdb.firebaseio.com",
+      projectId: "prasactronics-b28eb",
+      storageBucket: "prasactronics-b28eb.firebasestorage.app",
+      messagingSenderId: "1022798223455",
+      appId: "1:1022798223455:web:d26fb82f59cf3ac318a3ea",
+      measurementId: "G-7ESX735R8F"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    // 🔹 Owner Credentials
+    const OWNER_UID = "kRQb0JRHzYRp89EzmlfHhI68UzC3";
+    const OWNER_EMAIL = "prasactronics@gmail.com";
+
+    const loginForm = document.getElementById("loginForm");
+    const errorMsg = document.getElementById("errorMsg");
+    const googleBtn = document.getElementById("googleBtn");
+
+    // 🔹 Email/Password Login
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        if (user.uid === OWNER_UID) {
+          window.location.href = "owner.html";  // ✅ Owner
+        } else {
+          window.location.href = "welcome.html"; // ✅ Normal user
+        }
+      } catch (error) {
+        console.error(error);
+        errorMsg.textContent = "❌ " + error.message;
+      }
+    });
+
+    // 🔹 Google Login
+    googleBtn.addEventListener("click", async () => {
+      try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        if (user.email === OWNER_EMAIL) {
+          window.location.href = "owner.html";  // ✅ Owner
+        } else {
+          window.location.href = "welcome.html"; // ✅ Normal user
+        }
+      } catch (error) {
+        console.error("Google login failed:", error);
+        alert("❌ Google login failed. Try again.");
+      }
+    });
+  </script>
+</body>
+</html>

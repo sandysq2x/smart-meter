@@ -1,0 +1,33 @@
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
+  import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-messaging.js";
+
+  const firebaseConfig = { /* your same config */ };
+  const app = initializeApp(firebaseConfig);
+  const messaging = getMessaging(app);
+
+  // 🔹 Ask user for permission
+  Notification.requestPermission().then((permission) => {
+    if (permission === "granted") {
+      console.log("Notification permission granted.");
+
+      getToken(messaging, {
+        vapidKey: "YOUR_PUBLIC_VAPID_KEY"
+      }).then((token) => {
+        console.log("User Token:", token);
+        // Save this token to Firebase DB under the user’s UID
+      });
+    }
+  });
+
+  // 🔹 Handle notification when page is open
+  onMessage(messaging, (payload) => {
+    const notification = new Notification(payload.notification.title, {
+      body: payload.notification.body,
+      icon: "/meter.png"
+    });
+    notification.onclick = () => {
+      window.location.href = "payment.html";
+    };
+  });
+</script>

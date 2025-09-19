@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Payment</title>
+  <style>
+    body {
+      margin:0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg,#0f766e,#1e3a8a);
+      color:white;
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+    .card {
+      background:rgba(0,0,0,0.4);
+      padding:24px;
+      border-radius:12px;
+      max-width:400px;
+      width:100%;
+      text-align:center;
+      box-shadow:0 4px 12px rgba(0,0,0,0.4);
+    }
+    h1 { margin-bottom:10px; }
+    .amount {
+      font-size:20px;
+      font-weight:bold;
+      color:#facc15;
+      margin:15px 0;
+    }
+    .btn-pay {
+      margin-top:15px;
+      padding:12px 18px;
+      border:none;
+      border-radius:8px;
+      background:#22c55e;
+      color:white;
+      font-weight:bold;
+      cursor:pointer;
+    }
+    .btn-pay:hover {
+      background:#16a34a;
+    }
+    .btn-back {
+      margin-top:20px;
+      padding:10px 16px;
+      border:none;
+      border-radius:8px;
+      background:#ef4444;
+      color:white;
+      cursor:pointer;
+      font-weight:bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>⚡ Smart Meter Payment</h1>
+    <p>Total Units: <span id="totalUnits">0.000</span> kWh</p>
+    <p class="amount">Amount to Pay: ₹<span id="amount">0.00</span></p>
+
+    <h3>Pay via UPI</h3>
+    <button class="btn-pay" onclick="payWithUPI()">✅ Pay Now with UPI</button>
+
+    <button class="btn-back" onclick="window.location.href='welcome.html'">⬅ Back to Dashboard</button>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-database.js";
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyBKymhtFhKq9PDQnBetwcqgwpHSG8CZ26E",
+  authDomain: "prasactronics-b28eb.firebaseapp.com",
+  databaseURL: "https://prasactronics-b28eb-default-rtdb.firebaseio.com",
+  projectId: "prasactronics-b28eb",
+  storageBucket: "prasactronics-b28eb.firebasestorage.app",
+  messagingSenderId: "1022798223455",
+  appId: "1:1022798223455:web:d26fb82f59cf3ac318a3ea",
+  measurementId: "G-7ESX735R8F"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+const totalUnitsSpan = document.getElementById("totalUnits");
+const amountSpan = document.getElementById("amount");
+
+let billAmount = 0;
+
+// ✅ Load total units for logged-in user
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    const snap = await get(ref(db, "users/" + user.uid + "/totalUnits"));
+    if (snap.exists()) {
+      const units = parseFloat(snap.val());
+      totalUnitsSpan.textContent = units.toFixed(3);
+      billAmount = units * 100; // ₹100 per unit
+      amountSpan.textContent = billAmount.toFixed(2);
+    }
+  } else {
+    window.location.href = "signin.html";
+  }
+});
+
+// ✅ Always pay to your UPI ID
+function payWithUPI() {
+  const payee = "pratheepa0916@okicici"; // your UPI ID
+  const name = "SmartMeter";
+  const amount = billAmount.toFixed(2);
+
+  // Encode UPI parameters properly
+  const upiLink = `upi://pay?pa=${encodeURIComponent(payee)}&pn=${encodeURIComponent(name)}&am=${encodeURIComponent(amount)}&cu=INR`;
+
+  // Redirect (only works on mobile with UPI app installed)
+  window.location.href = upiLink;
+}
+
+window.payWithUPI = payWithUPI;
+</script>
+</body>
+</html>

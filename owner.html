@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Owner Dashboard - Smart Meter</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f5f6fa;
+      margin: 0;
+    }
+    header {
+      background: #1e3a8a;
+      color: white;
+      padding: 16px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    main {
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 900px;
+      padding: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background: #1e3a8a;
+      color: white;
+    }
+    tr:hover {
+      background: #f1f5f9;
+    }
+    .units {
+      font-weight: bold;
+      color: #0f766e;
+    }
+    .btn-collect {
+      padding: 6px 12px;
+      background: #22c55e;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-collect:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <header>Smart Meter - Owner Dashboard</header>
+  <main>
+    <div class="card">
+      <h2>Users & Total Units</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>User ID</th>
+            <th>Total Units</th>
+            <th>Amount (₹)</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="userTable"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-database.js";
+
+    // 🔹 Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBKymhtFhKq9PDQnBetwcqgwpHSG8CZ26E",
+      authDomain: "prasactronics-b28eb.firebaseapp.com",
+      databaseURL: "https://prasactronics-b28eb-default-rtdb.firebaseio.com",
+      projectId: "prasactronics-b28eb",
+      storageBucket: "prasactronics-b28eb.firebasestorage.app",
+      messagingSenderId: "1022798223455",
+      appId: "1:1022798223455:web:d26fb82f59cf3ac318a3ea",
+      measurementId: "G-7ESX735R8F"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const userTable = document.getElementById("userTable");
+
+    // 🔹 Allowed Owner
+    const OWNER_UID = "kRQb0JRHzYRp89EzmlfHhI68UzC3";
+    const OWNER_EMAIL = "prasactronics@gmail.com";
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        alert("Please sign in first!");
+        window.location.href = "signin.html";
+        return;
+      }
+
+      if (user.uid !== OWNER_UID && user.email !== OWNER_EMAIL) {
+        alert("Access denied! Only owner can view this page.");
+        window.location.href = "signin.html";
+        return;
+      }
+
+      // ✅ Read all users
+      onValue(ref(db, "users"), (snapshot) => {
+        if (!snapshot.exists()) {
+          userTable.innerHTML = `<tr><td colspan="4">No users found</td></tr>`;
+          return;
+        }
+
+        const users = snapshot.val();
+        userTable.innerHTML = "";
+
+        Object.entries(users).forEach(([uid, data]) => {
+          const totalUnits = parseFloat(data.totalUnits || 0);
+          const amount = totalUnits * 100; // 🔹 Rs 100 per unit
+
+          // Insert row
+          userTable.insertAdjacentHTML("beforeend", `
+            <tr id="row-${uid}">
+              <td>${uid}</td>
+              <td class="units">${totalUnits.toFixed(3)} kWh</td>
+              <td>₹${amount.toFixed(2)}</td>
+              <td><button class="btn-collect" id="btn-${uid}" data-uid="${uid}" data-amount="${amount}">Collect</button></td>
+            </tr>
+          `);
+
+          // Watch payment status
+          onValue(ref(db, "payments/" + uid), (snap) => {
+            const btn = document.getElementById("btn-" + uid);
+            if (!btn) return;
+
+            if (snap.exists() && snap.val().status === "paid") {
+              btn.disabled = true;
+              btn.innerText = "Paid";
+            }
+          });
+        });
+
+        // 🔹 Attach collect button listeners
+        document.querySelectorAll(".btn-collect").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const uid = btn.getAttribute("data-uid");
+            const amount = btn.getAttribute("data-amount");
+
+            // ✅ Write payment request in Firebase
+            set(ref(db, "payments/" + uid), {
+              amount: amount,
+              timestamp: Date.now(),
+              status: "pending"
+            }).then(() => {
+              btn.disabled = true;
+              btn.innerText = "Requested";
+              alert("Payment request sent to user!");
+            }).catch((err) => {
+              console.error("Payment request failed:", err);
+            });
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>

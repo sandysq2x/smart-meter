@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Set Limit</title>
+<style>
+body {
+  margin:0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg,#1e3a8a,#0f766e);
+  color:white;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+}
+.box {
+  background:rgba(0,0,0,0.5);
+  padding:24px;
+  border-radius:12px;
+  max-width:400px;
+  width:100%;
+  text-align:center;
+}
+h2 { margin-top:0; }
+input, select {
+  width:100%;
+  padding:10px;
+  margin:10px 0;
+  border:none;
+  border-radius:8px;
+}
+button {
+  margin-top:12px;
+  padding:10px 16px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+}
+.btn-save { background:#10b981; color:white; }
+.btn-cancel { background:#dc2626; color:white; margin-left:8px; }
+.priority-dropdown { margin-bottom:8px; }
+label { display:block; margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h2>Set Consumption Limit</h2>
+  <input type="number" id="limitInput" placeholder="Enter limit in kWh"/>
+  
+  <label>
+    Enable Limit:
+    <input type="checkbox" id="limitEnabled"/>
+  </label>
+
+  <!-- Number of priority relays -->
+  <input type="number" id="priorityCount" placeholder="Number of priority relays" min="1" max="6"/>
+  
+  <!-- Container for dynamic priority dropdowns -->
+  <div id="priorityContainer"></div>
+
+  <div>
+    <button class="btn-save" id="saveBtn">Save</button>
+    <button class="btn-cancel" onclick="window.location.href='welcome.html'">Cancel</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
+import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-database.js";
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyBKymhtFhKq9PDQnBetwcqgwpHSG8CZ26E",
+  authDomain: "prasactronics-b28eb.firebaseapp.com",
+  databaseURL: "https://prasactronics-b28eb-default-rtdb.firebaseio.com",
+  projectId: "prasactronics-b28eb",
+  storageBucket: "prasactronics-b28eb.firebasestorage.app",
+  messagingSenderId: "1022798223455",
+  appId: "1:1022798223455:web:d26fb82f59cf3ac318a3ea",
+  measurementId: "G-7ESX735R8F"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+const limitInput = document.getElementById("limitInput");
+const limitEnabledCheckbox = document.getElementById("limitEnabled");
+const priorityCount = document.getElementById("priorityCount");
+const priorityContainer = document.getElementById("priorityContainer");
+const saveBtn = document.getElementById("saveBtn");
+
+let currentUser = null;
+
+// Relay options
+const relayOptions = ["relay1","relay2","relay3","relay4","relay5","relay6"];
+
+onAuthStateChanged(auth,(user)=>{
+  if(user){
+    currentUser = user;
+    loadExisting(user.uid);
+  } else {
+    window.location.href="signin.html";
+  }
+});
+
+// Generate dropdowns dynamically
+priorityCount.addEventListener("input", ()=> {
+  const count = parseInt(priorityCount.value);
+  priorityContainer.innerHTML = "";
+  for(let i=0;i<count;i++){
+    const select = createUniqueSelect();
+    priorityContainer.appendChild(select);
+  }
+  updateDropdownOptions();
+});
+
+// Create single dropdown
+function createUniqueSelect(value=""){
+  const select = document.createElement("select");
+  select.className = "priority-dropdown";
+  relayOptions.forEach(r=>{
+    const opt = document.createElement("option");
+    opt.value = r;
+    opt.textContent = r;
+    select.appendChild(opt);
+  });
+  if(value) select.value = value;
+  select.addEventListener("change", updateDropdownOptions);
+  return select;
+}
+
+// Update options to ensure uniqueness
+function updateDropdownOptions(){
+  const selects = Array.from(priorityContainer.querySelectorAll("select"));
+  const selectedValues = selects.map(s=>s.value).filter(v=>v);
+  selects.forEach(select=>{
+    Array.from(select.options).forEach(opt=>{
+      opt.disabled = selectedValues.includes(opt.value) && opt.value !== select.value;
+    });
+  });
+}
+
+// Load existing config
+async function loadExisting(uid){
+  const snap = await get(ref(db, "users/"+uid+"/limitConfig"));
+  if(snap.exists()){
+    const cfg = snap.val();
+    limitInput.value = cfg.limit || "";
+    limitEnabledCheckbox.checked = cfg.enabled !== false;
+    if(cfg.priority && Array.isArray(cfg.priority)){
+      priorityCount.value = cfg.priority.length;
+      priorityContainer.innerHTML = "";
+      cfg.priority.forEach(p=>{
+        const select = createUniqueSelect(p);
+        priorityContainer.appendChild(select);
+      });
+      updateDropdownOptions();
+    }
+  }
+}
+
+// Save config
+saveBtn.addEventListener("click", async ()=>{
+  const selected = Array.from(priorityContainer.querySelectorAll("select")).map(s=>s.value);
+  if(!limitInput.value){
+    alert("Please enter limit in kWh");
+    return;
+  }
+  const uniqueSet = new Set(selected);
+  if(selected.length > 0 && uniqueSet.size !== selected.length){
+    alert("Each priority relay must be unique");
+    return;
+  }
+  const config = {
+    limit: parseFloat(limitInput.value),
+    priority: selected,
+    enabled: limitEnabledCheckbox.checked
+  };
+  await set(ref(db,"users/"+currentUser.uid+"/limitConfig"), config);
+  alert("Limit saved!");
+  window.location.href="welcome.html";
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Create Account - Smart Meter</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="box">
+    <h2>Create Account</h2>
+    <input type="email" id="email" placeholder="Enter Email" required>
+    <input type="password" id="password" placeholder="Enter Password" required>
+    <button id="createBtn">Create Account</button>
+    <p id="message"></p>
+    <button id="resendBtn" style="display:none;">Resend Verification Email</button>
+    <p><a href="signin.html">Already have an account? Sign In</a></p>
+  </div>
+
+  <script type="module">
+    import { auth } from "./firebase-config.js";
+    import { 
+      createUserWithEmailAndPassword, 
+      sendEmailVerification 
+    } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
+
+    const email = document.getElementById("email");
+    const password = document.getElementById("password");
+    const createBtn = document.getElementById("createBtn");
+    const message = document.getElementById("message");
+    const resendBtn = document.getElementById("resendBtn");
+
+    createBtn.addEventListener("click", async () => {
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value);
+        const user = userCredential.user;
+        await sendEmailVerification(user);
+        message.textContent = "Verification email sent. Please check your inbox.";
+        resendBtn.style.display = "block";
+      } catch (err) {
+        message.textContent = err.message;
+      }
+    });
+
+    resendBtn.addEventListener("click", async () => {
+      if (auth.currentUser) {
+        await sendEmailVerification(auth.currentUser);
+        message.textContent = "Verification email resent.";
+      }
+    });
+  </script>
+</body>
+</html>
