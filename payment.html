@@ -67,7 +67,11 @@
     <p class="amount">Amount to Pay: ₹<span id="amount">0.00</span></p>
 
     <h3>Pay via UPI</h3>
-    <button id="upiBtn" class="btn-pay">✅ Pay Now with UPI</button>
+<a id="upiLink" 
+   href="upi://pay?pa=pratheepa0916@okicici&pn=SmartMeter&am=28.90&cu=INR"
+   style="display:none;">Open UPI</a>
+
+<button onclick="document.getElementById('upiLink').click()">✅ Pay with UPI</button>
 
     <button class="btn-back" onclick="window.location.href='welcome.html'">⬅ Back to Dashboard</button>
   </div>
@@ -136,3 +140,4 @@ upiBtn.addEventListener("click", () => {
 </script>
 </body>
 </html>
+
