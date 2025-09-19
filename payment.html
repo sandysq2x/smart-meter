@@ -1,143 +1,64 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Payment</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Meter - Payment</title>
   <style>
     body {
-      margin:0;
       font-family: Arial, sans-serif;
-      background: linear-gradient(135deg,#0f766e,#1e3a8a);
-      color:white;
-      min-height:100vh;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      padding:20px;
+      background: linear-gradient(135deg, #1e3a8a, #0f766e);
+      color: white;
+      text-align: center;
+      padding: 40px;
     }
-    .card {
-      background:rgba(0,0,0,0.4);
-      padding:24px;
-      border-radius:12px;
-      max-width:400px;
-      width:100%;
-      text-align:center;
-      box-shadow:0 4px 12px rgba(0,0,0,0.4);
+
+    h1 {
+      margin-bottom: 20px;
     }
-    h1 { margin-bottom:10px; }
-    .amount {
-      font-size:20px;
-      font-weight:bold;
-      color:#facc15;
-      margin:15px 0;
+
+    .payment-box {
+      background: rgba(255,255,255,0.1);
+      padding: 20px;
+      border-radius: 12px;
+      display: inline-block;
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
     }
-    .btn-pay {
-      margin-top:15px;
-      padding:12px 18px;
-      border:none;
-      border-radius:8px;
-      background:#22c55e;
-      color:white;
-      font-weight:bold;
-      cursor:pointer;
-      text-decoration:none;
-      display:inline-block;
+
+    .btn {
+      background: #22c55e;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      margin-top: 20px;
+      border-radius: 8px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: 0.3s;
     }
-    .btn-pay:hover {
-      background:#16a34a;
-    }
-    .btn-back {
-      margin-top:20px;
-      padding:10px 16px;
-      border:none;
-      border-radius:8px;
-      background:#ef4444;
-      color:white;
-      cursor:pointer;
-      font-weight:bold;
+
+    .btn:hover {
+      background: #16a34a;
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>⚡ Smart Meter Payment</h1>
-    <p>Total Units: <span id="totalUnits">0.000</span> kWh</p>
-    <p class="amount">Amount to Pay: ₹<span id="amount">0.00</span></p>
 
-    <h3>Pay via UPI</h3>
-<a id="upiLink" 
-   href="upi://pay?pa=pratheepa0916@okicici&pn=SmartMeter&am=28.90&cu=INR"
-   style="display:none;">Open UPI</a>
+  <h1>💡 Smart Meter Payment</h1>
+  <div class="payment-box">
+    <p>Pay your Smart Meter bill securely using UPI</p>
+    <p><strong>Amount:</strong> ₹28.90</p>
 
-<button onclick="document.getElementById('upiLink').click()">✅ Pay with UPI</button>
-
-    <button class="btn-back" onclick="window.location.href='welcome.html'">⬅ Back to Dashboard</button>
+    <!-- Payment Button -->
+    <a id="payBtn" class="btn">Pay with Google Pay / UPI</a>
   </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-database.js";
+  <script>
+    document.getElementById("payBtn").addEventListener("click", function() {
+      let upiLink = "upi://pay?pa=pratheepa0916@okicici&pn=SmartMeter&am=28.90&cu=INR";
+      window.location.href = upiLink;
+    });
+  </script>
 
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyBKymhtFhKq9PDQnBetwcqgwpHSG8CZ26E",
-  authDomain: "prasactronics-b28eb.firebaseapp.com",
-  databaseURL: "https://prasactronics-b28eb-default-rtdb.firebaseio.com",
-  projectId: "prasactronics-b28eb",
-  storageBucket: "prasactronics-b28eb.firebasestorage.app",
-  messagingSenderId: "1022798223455",
-  appId: "1:1022798223455:web:d26fb82f59cf3ac318a3ea",
-  measurementId: "G-7ESX735R8F"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getDatabase(app);
-
-const totalUnitsSpan = document.getElementById("totalUnits");
-const amountSpan = document.getElementById("amount");
-const upiBtn = document.getElementById("upiBtn");
-
-let billAmount = 0;
-
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    const snap = await get(ref(db, "users/" + user.uid + "/totalUnits"));
-    if (snap.exists()) {
-      const units = parseFloat(snap.val());
-      totalUnitsSpan.textContent = units.toFixed(3);
-      billAmount = units * 100;
-      amountSpan.textContent = billAmount.toFixed(2);
-    }
-  } else {
-    window.location.href = "signin.html";
-  }
-});
-
-// ✅ Handle UPI click with iframe trick
-upiBtn.addEventListener("click", () => {
-  const payee = "pratheepa0916@okicici";
-  const name = "SmartMeter";
-  const amount = billAmount.toFixed(2);
-
-  const deepLink = `upi://pay?pa=${encodeURIComponent(payee)}&pn=${encodeURIComponent(name)}&am=${encodeURIComponent(amount)}&cu=INR`;
-  const gpayLink = `https://pay.google.com/gp/p/ui/pay?pa=${encodeURIComponent(payee)}&pn=${encodeURIComponent(name)}&am=${encodeURIComponent(amount)}&cu=INR`;
-
-  // Hidden iframe for UPI intent
-  const iframe = document.createElement("iframe");
-  iframe.style.display = "none";
-  iframe.src = deepLink;
-  document.body.appendChild(iframe);
-
-  // Fallback → Google Pay after 2s if UPI fails
-  setTimeout(() => {
-    window.location.href = gpayLink;
-  }, 2000);
-});
-</script>
 </body>
 </html>
-
