@@ -42,6 +42,8 @@
       color:white;
       font-weight:bold;
       cursor:pointer;
+      text-decoration:none;
+      display:inline-block;
     }
     .btn-pay:hover {
       background:#16a34a;
@@ -65,7 +67,8 @@
     <p class="amount">Amount to Pay: ₹<span id="amount">0.00</span></p>
 
     <h3>Pay via UPI</h3>
-    <button class="btn-pay" onclick="payWithUPI()">✅ Pay Now with UPI</button>
+    <!-- 🔹 Anchor link that opens UPI app -->
+    <a id="upiLink" class="btn-pay">✅ Pay Now with UPI</a>
 
     <button class="btn-back" onclick="window.location.href='welcome.html'">⬅ Back to Dashboard</button>
   </div>
@@ -93,38 +96,43 @@ const db = getDatabase(app);
 
 const totalUnitsSpan = document.getElementById("totalUnits");
 const amountSpan = document.getElementById("amount");
+const upiLink = document.getElementById("upiLink");
 
 let billAmount = 0;
 
-// ✅ Load total units for logged-in user
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     const snap = await get(ref(db, "users/" + user.uid + "/totalUnits"));
     if (snap.exists()) {
       const units = parseFloat(snap.val());
       totalUnitsSpan.textContent = units.toFixed(3);
-      billAmount = units * 100; // ₹100 per unit
+      billAmount = units * 100;
       amountSpan.textContent = billAmount.toFixed(2);
+
+      // ✅ Create UPI deep link
+      const payee = "pratheepa0916@okicici";
+      const name = "SmartMeter";
+      const amount = billAmount.toFixed(2);
+
+      const deepLink = `upi://pay?pa=${encodeURIComponent(payee)}&pn=${encodeURIComponent(name)}&am=${encodeURIComponent(amount)}&cu=INR`;
+
+      // ✅ Google Pay Fallback
+      const gpayLink = `https://pay.google.com/gp/p/ui/pay?pa=${encodeURIComponent(payee)}&pn=${encodeURIComponent(name)}&am=${encodeURIComponent(amount)}&cu=INR`;
+
+      // Assign deep link
+      upiLink.href = deepLink;
+
+      // 🔹 If browser blocks upi:// → fallback to GPay
+      upiLink.onclick = function(e) {
+        setTimeout(() => {
+          window.location.href = gpayLink;
+        }, 1000);
+      };
     }
   } else {
     window.location.href = "signin.html";
   }
 });
-
-// ✅ Always pay to your UPI ID
-function payWithUPI() {
-  const payee = "pratheepa0916@okicici"; // your UPI ID
-  const name = "SmartMeter";
-  const amount = billAmount.toFixed(2);
-
-  // Encode UPI parameters properly
-  const upiLink = `upi://pay?pa=${encodeURIComponent(payee)}&pn=${encodeURIComponent(name)}&am=${encodeURIComponent(amount)}&cu=INR`;
-
-  // Redirect (only works on mobile with UPI app installed)
-  window.location.href = upiLink;
-}
-
-window.payWithUPI = payWithUPI;
 </script>
 </body>
 </html>
